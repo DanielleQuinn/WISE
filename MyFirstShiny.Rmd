@@ -34,3 +34,34 @@ renderPlot(
 **To Do:**
 
 - Figure out how to make the y axis consistent. Possibly using the table function with appropriate binning of lengths. Is there an easier way?
+
+- Set plot dimensions.
+
+
+## Growth Rates ##
+
+```{r, echo=FALSE}
+library(reshape2)
+mygrowth<-data.frame(id=c(1:20),startlength=abs(rnorm(20,4,2)))
+mygrowth$endlength<-mygrowth$startlength+mygrowth$startlength*0.04
+mygrowth2<-melt(mygrowth, id.vars="id")
+mygrowth$growthrate<-mygrowth$endlength-mygrowth$startlength/365
+
+inputPanel(selectInput("plot_type", label="Plot:",
+              choices=c('a', 'b'), selected='b'))
+
+renderPlot(
+  {
+    ggplot(mygrowth2)+
+      geom_point(aes(x=variable, y=value))+
+      geom_line(aes(x=variable, y=value, group=id))+
+      theme_bw(15)+ylab("Length (cm)")+xlab("Days Since First Measurement")
+  })
+
+renderPlot(
+  {
+    ggplot(mygrowth)+
+      geom_boxplot(aes(x=1,y=growthrate))+
+      theme_bw(15)
+  })
+```
