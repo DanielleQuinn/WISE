@@ -13,15 +13,17 @@ shinyServer(
       return(a)
       }
       )
-    
-  output$distPlot<-renderPlot(
-    {      
+  
+      output$distPlot<-renderPlot(
+      {      
       # Create Plot #
       ggplot(data.r(), env=environment())+
-        geom_histogram(aes(x=Length), fill='grey50', col='black')+
+        geom_histogram(aes(x=Length, fill=Type2), col='black')+
         theme_bw(15)+ylab("Count")+xlab("Length (cm)")+
-        ggtitle(input$gear_type)
-    }
-    )
+        ggtitle(input$gear_type)+
+        ylim(0,3)+
+        xlim(min(mydata$Length, na.rm=TRUE), max(mydata$Length, na.rm=TRUE))        
+      }
+      )
   }
   )

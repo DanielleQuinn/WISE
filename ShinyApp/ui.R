@@ -8,7 +8,7 @@ shinyUI(fluidPage(
   
   # Sidebar with a slider input for the number of bins
   sidebarLayout(sidebarPanel(inputPanel(selectInput("gear_type", label="Gear Type:",
-                             choices=c('Trawl', 'Angler', 'Weir'), selected='Trawl'))),
+                             choices=c('All', 'Trawl', 'Angler', 'Weir'), selected='All'))),
     
     # Show a plot of the generated distribution
     mainPanel(plotOutput("distPlot")))))
