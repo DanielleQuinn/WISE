@@ -1,14 +1,16 @@
 library(shiny)
+library(ggplot2)
+library(RColorBrewer)
+library(dplyr)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
-  
   # Application title
-  titlePanel("Hello Shiny!"),
-  
-  # Sidebar with a slider input for the number of bins
-  sidebarLayout(sidebarPanel(inputPanel(selectInput("gear_type", label="Gear Type:",
-                             choices=c('All', 'Trawl', 'Angler', 'Weir'), selected='All'))),
+  titlePanel("How does sampling method influence our results?"),
+  # Sidebar with checkboxes
+  sidebarLayout(checkboxGroupInput("my_sample_type", label="Sampling Method:",
+                                   choices=c('trawl', 'angler', 'weir'),
+                                   selected=c('trawl', 'angler', 'weir')),
     
     # Show a plot of the generated distribution
     mainPanel(plotOutput("distPlot")))))
