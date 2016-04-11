@@ -1,0 +1,267 @@
+---
+title: "Something's Fishy in the Bay of Fundy"
+author: "WISE Science Retreat"
+date: "Friday, March 18, 2016"
+output: 
+  html_document:
+    theme: readable
+runtime: shiny
+---
+
+> **Congratulations!** You have finished a season of sampling a fish population in the Inner Bay of Fundy using three survey methods: trawling, seining, and angling. You've carefully followed the sampling protocols, collected information about each fish, and recorded the data. Now, it's time to see the results of your study!
+
+```{r, echo=FALSE, warnings=FALSE, message=FALSE}
+# This piece of code retrives the data that we've entered #
+setwd("C:/Users/danie/Desktop/WISE")
+mydata<-read.delim("mydata.txt")
+mybins<-read.delim("bins.txt")
+mydata$Group<-gsub(" ","",mydata$Group)
+mydata$Survey_Type<-gsub(" ","",mydata$Survey_Type)
+
+library(ggplot2)
+library(RColorBrewer)
+library(dplyr)
+
+totaltags<-30 # How many fish did we tag before the activity?
+
+# This sets up the order of our Groups
+mydata$Group<-with(mydata, factor(mydata$Group, levels=c("Volunteers","Morning","Afternoon")))
+
+# This sets up the order of our Survey Types
+mydata$Survey_Type<-with(mydata, factor(mydata$Survey_Type, levels=c("Trawling","Seining","Angling")))
+
+```
+
+### Research Objectives
+##### What questions were we trying to answer?
+
+**Question 1:** What can we learn about the structure of the population?
+
+**Question 2:** How many individuals are there in the population?
+
+### Analysis
+
+**Question 1**: What can we learn about the structure of the population?
+
+The average length of all fish measured was ` `r round(mean(mydata$Length),1)` ` cm. Let's look at fish length in more detail using a type of graph called a *length-frequency histogram*. It tells you how many fish were caught at each length. In this case, each bar represents a 5 cm range.
+
+```{r, echo=FALSE, warnings=FALSE}
+# Set up barplot values #
+for(i in 1:nrow(mybins))
+{
+  mybins$count[i]<-length(mydata$Length[mydata$Length>=mybins$bin_low[i] & mydata$Length<=mybins$bin_high[i]])
+}
+
+# This piece of code creates our first plot #
+renderPlot(
+  {
+    ggplot(mybins)+
+      geom_bar(aes(x=bin_high, y=count), stat="identity", alpha=0.6, fill='grey50', col='black')+xlim(0,100)+
+      theme_bw(22)+ylab("Number of Fish")+xlab("Length (cm)")
+  })
+```
+
+> What does the length-frequency histogram tell us about the population?
+
+*How do our survey methods affect our results?*
+
+In studies like this one, it's important to think about how your sampling methods might influence your data collection.
+
+The average length of all fish sampled using **trawling** was ` `r round(mean(mydata$Length[mydata$Survey_Type=="Trawling"]),1)` ` cm.
+
+The average length of all fish sampled using **seining** was ` `r round(mean(mydata$Length[mydata$Survey_Type=="Seining"]),1)` ` cm.
+
+The average length of all fish sampled using **angling** was ` `r round(mean(mydata$Length[mydata$Survey_Type=="Angling"]),1)` ` cm.
+
+Let's see how our length-frequency histogram is different using each of our sampling methods. Use the checkboxes to switch between sampling methods.
+
+```{r, echo=FALSE, warnings=FALSE}
+# Set up barplot values #
+mybins_method<-rbind(mybins, mybins, mybins)
+mybins_method$count<-NA
+mybins_method$Survey_Type<-c(rep("Trawling",20), rep("Seining",20), rep("Angling",20))
+for(i in 1:nrow(mybins_method))
+{
+  mybins_method$count[i]<-length(mydata$Length[mydata$Length>=mybins_method$bin_low[i] & mydata$Length<=mybins_method$bin_high[i] & mydata$Survey_Type==mybins_method$Survey_Type[i]])
+}
+mybins_method$Survey_Type<-with(mybins_method, factor(mybins_method$Survey_Type, levels=c("Trawling","Seining","Angling")))
+
+# Set y axis limits #
+max_y<-max(mybins$count)
+
+# This assigns a different colour for each survey type #
+myFills<-brewer.pal(3,"Set1")
+names(myFills)<-levels(mydata$Survey_Type)
+FillScale<-scale_fill_manual(name="Survey Type",values=myFills)
+
+# This sets up the checkboxes that we use to pick which sampling method we want to look at #
+inputPanel(checkboxGroupInput("survey_type", label="Survey Type:",
+                              choices=c('Trawling', 'Seining', 'Angling'),
+                              selected=c('Trawling')))
+
+# This creates our second plot #
+renderPlot(
+  {
+    ggplot(mybins_method[mybins_method$Survey_Type %in% input$survey_type,])+
+      geom_bar(aes(x=bin_high, y=count, fill=Survey_Type), alpha=0.6, col='black', stat="identity")+
+      FillScale+
+      theme_bw(22)+ylab("Number of Fish")+xlab("Length (cm)")+
+      xlim(0,100)+ylim(0,max_y)
+  })
+```
+
+> Do you notice any patterns between the survey method and the sizes of fish that were captured? Why is it important to think about these patterns when you're making conclusions about your study?
+
+*What kind of variability do we see with our results?*
+
+Since we had three groups (volunteers, the morning session, and the afternoon session) use each method, we can compare the results of each group and each method. By looking at the *variability* between the groups, we can learn more about how consistent each method is at sampling the fish population. Use the checkboxes to switch between sampling methods.
+
+```{r, echo=FALSE, warnings=FALSE}
+# Set up barplot values #
+mybins_temp<-rbind(mybins, mybins, mybins)
+mybins_temp$count<-NA
+mybins_temp$Survey_Type<-c(rep("Trawling",20), rep("Seining",20), rep("Angling",20))
+
+mybins_group<-rbind(mybins_temp, mybins_temp, mybins_temp)
+mybins_group$Group<-c(rep("Volunteers",60), rep("Morning",60), rep("Afternoon",60))
+
+for(i in 1:nrow(mybins_group))
+{
+  mybins_group$count[i]<-length(mydata$Length[mydata$Length>=mybins_group$bin_low[i] & mydata$Length<=mybins_group$bin_high[i] & mydata$Survey_Type==mybins_group$Survey_Type[i] & mydata$Group==mybins_group$Group[i]])
+}
+mybins_group$Survey_Type<-with(mybins_group, factor(mybins_group$Survey_Type, levels=c("Trawling","Seining","Angling")))
+mybins_group$Group<-with(mybins_group, factor(mybins_group$Group, levels=c("Volunteers","Morning","Afternoon")))
+
+# This sets up the checkboxes that we use to pick which sampling method we want to look at #
+inputPanel(checkboxGroupInput("survey_type2", label="Survey Type:",
+                              choices=c('Trawling', 'Seining', 'Angling'),
+                              selected=c('Trawling')))
+
+# This creates our second plot #
+renderPlot(
+  {
+    ggplot(mybins_group[mybins_group$Survey_Type %in% input$survey_type2,])+
+      geom_bar(aes(x=bin_high, y=count, fill=Survey_Type), alpha=0.6, col='black', stat="identity")+
+      FillScale+theme_bw(22)+
+      theme(legend.position="bottom")+
+      facet_grid(Group~.)+xlim(0,100)+ylim(0,max_y)+
+      ylab("Count")+xlab("Length (cm)")
+  }, height=500)
+```
+
+> Which method was the most consistent? Which method was the least consistent? How could looking at the variability help us make our sampling protocols better?
+
+**Question 2**: How many individuals are there in the population?
+
+Tagging programs are useful for estimating population size, or how many individuals are present in an area. Before this exercise started, `r totaltags` fish were tagged. 
+
+```{r, echo=FALSE, warnings=FALSE}
+# This runs a capture-mark-recapture analysis on our data to produce a population estimate
+cmr<-mydata%>%
+  summarise(Total=length(Fish),
+            Recaptured=sum(Tag))%>%
+  data.frame()
+cmr$PopEst<-round((cmr$Total*totaltags)/cmr$Recaptured,0)
+```
+
+Combining all survey methods and groups, you captured ` `r nrow(mydata)` ` fish. Of these, ` `r sum(mydata$Tag)` ` were fish that had tags, also called "recaptured fish".
+
+We can find our population estimate (N) using this equation:
+
+N = (TotalFish x TotalTags)/RecapturedFish
+
+In our case, that is:
+
+N = (` `r nrow(mydata)` ` x `r totaltags`)/` `r sum(mydata$Tag)` `
+
+So, our overall population estimate (N) is ` `r cmr$PopEst` ` fish!
+
+*How do our survey methods affect our results?*
+
+Of the 30 tagged fish, 20 had external tags that could be seen by anyone, and 10 had Passive Integrated Transponder Tags, or PIT tags. PIT tags can only be detected by groups using a PIT Reader. In this exercise, we allowed the trawling and seining groups to have a PIT Reader, but not the angling group. Let's see how populations estimates from each survey method compared.
+
+The dashed grey line on the graph is our overall population estimate. Use the checkboxes to switch between sampling methods.
+
+```{r, echo=FALSE, warnings=FALSE}
+# This runs a capture-mark-recapture analysis on our data to produce population estimates for each survey type
+cmr_bytype<-mydata%>%
+  group_by(Survey_Type)%>%
+  summarise(Total=length(Fish),
+            Recaptured=sum(Tag))%>%
+  data.frame()
+cmr_bytype$PopEst<-round((cmr_bytype$Total*totaltags)/cmr_bytype$Recaptured,0)
+
+# This sets up the checkboxes that we use to pick which sampling method we want to look at #
+inputPanel(checkboxGroupInput("survey_type3", label="Survey Type:",
+                              choices=c('Trawling', 'Seining', 'Angling'),
+                              selected=c('Trawling')))
+# This hides the legend for fill
+newFillScale<-scale_fill_manual(name="Survey Type",values=myFills, guide=FALSE)
+  
+# This creates our third plot #
+renderPlot(
+  {
+    ggplot(cmr_bytype[cmr_bytype$Survey_Type %in% input$survey_type3,])+
+      geom_point(aes(x=Survey_Type, y=PopEst, fill=Survey_Type), shape=21, size=10, alpha=0.6)+
+      geom_hline(yintercept=cmr$PopEst, linetype='dashed', size=2, col='grey50')+
+      newFillScale+
+      theme_bw(22)+ylab("Population Estimate")+
+      xlab("Survey Type")+ylim(min(cmr_bytype$PopEst, cmr$PopEst)-10, max(cmr_bytype$PopEst, cmr$PopEst)+10)
+  })
+```
+
+> How did our population estimate differ between survey methods? Why do you think this happened?
+
+*What kind of variability do we see with our results?*
+
+Just like with the length-frequency histograms, since we had three groups use each method, we can compare the population estimates of each group and each method. Use the checkboxes to switch between sampling methods and groups.
+
+```{r, echo=FALSE, warnings=FALSE}
+# This runs a capture-mark-recapture analysis on our data to produce population estimates for each survey type
+cmr_bygroup<-mydata%>%
+  group_by(Survey_Type, Group)%>%
+  summarise(Total=length(Fish),
+            Recaptured=sum(Tag))%>%
+  data.frame()
+cmr_bygroup$PopEst<-round((cmr_bygroup$Total*totaltags)/cmr_bygroup$Recaptured,0)
+
+# This sets up the checkboxes that we use to pick which sampling method we want to look at #
+inputPanel(checkboxGroupInput("survey_type4", label="Survey Type:",
+                              choices=c('Trawling', 'Seining', 'Angling'),
+                              selected=c('Trawling')),
+           checkboxGroupInput("group", label="Group:",
+                              choices=c("Volunteers","Morning","Afternoon"),
+                              selected="Volunteers"))
+
+# This assigns a different shape for each group #
+myShapes<-c(21,22,23)
+names(myShapes)<-levels(mydata$Group)
+ShapeScale<-scale_shape_manual(name="Group",values=myShapes)
+
+# This creates our fourth plot #
+renderPlot(
+  {
+    ggplot(cmr_bygroup[cmr_bygroup$Group %in% input$group & cmr_bygroup$Survey_Type %in% input$survey_type4,])+
+      geom_point(aes(x=Survey_Type, y=PopEst, shape=Group, fill=Survey_Type), size=12, alpha=0.6)+
+      geom_hline(yintercept=cmr$PopEst, linetype='dashed', size=2, col='grey50')+
+      newFillScale+
+      ShapeScale+
+      theme_bw(22)+
+      theme(legend.position="bottom")+
+      ylab("Population Estimate")+
+      xlab("Survey Type")+
+      ylim(min(cmr_bygroup$PopEst, cmr$PopEst)-10, max(cmr_bygroup$PopEst, cmr$PopEst)+10)
+  })
+```
+
+> Which method was the most consistent? Which method was the least consistent?
+
+### Discussion
+
+> Can you think of any other sources of errors or problems with our data collection that might influence our results?
+
+> How would data collection be different if you were really out on the water?
+
+> What would you change if you were designing a sampling protocol?
+
+> How could these results be used to monitor a fish population when tidal turbines are placed into the Bay of Fundy?
