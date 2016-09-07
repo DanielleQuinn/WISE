@@ -12,7 +12,7 @@ runtime: shiny
 
 ```{r, echo=FALSE, warnings=FALSE, message=FALSE}
 # This piece of code retrives the data that we've entered #
-setwd("C:/Users/danie/Desktop/WISE")
+#setwd("C:/Users/danie/Desktop/WISE")
 mydata<-read.delim("mydata.txt")
 mybins<-read.delim("bins.txt")
 mydata$Group<-gsub(" ","",mydata$Group)
